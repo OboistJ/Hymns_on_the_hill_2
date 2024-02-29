@@ -22,7 +22,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.shinjuan.test03"
+      "package": "com.shinjuan.test03",
+      "minSdkVersion": 22,
+      "targetSdkVersion": 33
     },
     "web": {
       "favicon": "./assets/favicon.png"
