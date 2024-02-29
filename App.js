@@ -28,35 +28,33 @@ const HelpModal = ({ visible, onClose }) => (
     onRequestClose={onClose}
   >
     <TouchableWithoutFeedback onPress={onClose}>
-      <View style={styles.modalOverlay2} />
-    </TouchableWithoutFeedback>
-    <View style={styles.modalContent2} >
-      <Text style={fontSize=styles.modalText1} > 
-      <Text style={[styles.modalText1, styles.heading]}>
+      <View style={styles.modalOverlay2}>
+        <TouchableWithoutFeedback>
+          <View style={styles.modalContent2}>
+            <Text style={styles.modalText1}>
+              <Text style={[styles.modalText1, styles.heading]}>
                 언덕위의 찬송 앱을  {'\n'}이용해 주셔서 감사합니다.
-    {'\n\n'}
-  </Text>
-          언덕 위의 찬송 앱은 수록곡 257곡의 악보와 {'\t'}일부 음원, 그리고 간단한 기능을 제공합니다.
-          {'\n\n'}
-
-        ⦁ 찬송 검색 (장, 제목, 가사로 검색할 수 있습니다.) {'\n\n'} 
-
-        ⦁ 메뉴-더욱 소중히 불러보고 싶은 찬송(즐겨찾기) {'\n\n'} 
-          각 항목을 왼쪽으로 스와이프하여 지정/해제,{'\n'}
-          왼쪽 상단 메뉴-더욱 소중히 불러보고 싶은 찬송에서 확인할 수 있습니다. {'\n\n'} 
-
-        ⦁ 찬송 재생 (처음부터 재생, 재생/정지, 반복 재생) {'\n\n'} 
-
-        ⦁ 메뉴-진토리 홈페이지 접속  {'\n\n'} 
-
-        <Text style={styles.smallText}>
-        {'<'}추가 문의 및 요청{'>'}{'\n'}sshkimssh@naver.com{'\n'}juani00@naver.com
-      </Text>
-      </Text>
-      <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>닫기</Text>
-        </TouchableOpacity>
-    </View>
+                {'\n\n'}
+              </Text>
+              언덕 위의 찬송 앱은 수록곡 257곡의 악보와 일부 음원, 그리고 간단한 기능을 제공합니다.
+              {'\n\n'}
+              ⦁ 찬송 검색 (장, 제목, 가사로 검색할 수 있습니다.) {'\n\n'} 
+              ⦁ 메뉴-더욱 소중히 불러보고 싶은 찬송(즐겨찾기) {'\n\n'} 
+              각 항목을 왼쪽으로 스와이프하여 지정/해제,{'\n'}
+              왼쪽 상단 메뉴-더욱 소중히 불러보고 싶은 찬송에서 확인할 수 있습니다. {'\n\n'} 
+              ⦁ 찬송 재생 (처음부터 재생, 재생/정지, 반복 재생) {'\n\n'} 
+              ⦁ 메뉴-진토리 홈페이지 접속  {'\n\n'} 
+              <Text style={styles.smallText}>
+                {'<'}추가 문의 및 요청{'>'}{'\n'}sshkimssh@naver.com{'\n'}juani00@naver.com
+              </Text>
+            </Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <Text style={styles.closeButtonText}>닫기</Text>
+      </TouchableOpacity>         
+       </View>
+        </TouchableWithoutFeedback>
+      </View>
+    </TouchableWithoutFeedback>
   </Modal>
 );
 
@@ -1035,7 +1033,7 @@ const handleSliderValueChange = async (value) => {
         headerLeft: () => (
           <View style={styles.headerLeftContainer}>
             {/* 목록으로 돌아가기 버튼 */}
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+            <TouchableOpacity onPress={() => navigation.goBack}>
               <Image
                 source={require('./images/previous.png')}
                 style={styles.buttonImagePrevIndex}
@@ -1044,7 +1042,7 @@ const handleSliderValueChange = async (value) => {
             </TouchableOpacity>
     
             {/* 이전 버튼 */}
-            <TouchableOpacity onPress={goToPrevious}>
+            <TouchableOpacity onPress={() => navigation.goToPrevious}>
               <Image
                 source={require('./images/previous.png')}
                 style={styles.buttonImagePrev}
@@ -1054,7 +1052,7 @@ const handleSliderValueChange = async (value) => {
         ),
         headerRight: () => (
           <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={goToNext}>
+            <TouchableOpacity onPress={() => navigation.goToPrevious}>
               <Image
                 source={require('./images/next.png')}
                 style={styles.buttonImageNext}
