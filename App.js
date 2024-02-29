@@ -773,7 +773,7 @@ useLayoutEffect(() => {
                 <Image
                   key={index}
                   source={image}
-                  style={{ width: screenWidth, height: screenHeight ,marginTop: -125,marginBottom: -150 }}
+                  style={{ width: screenWidth, height: screenHeight ,marginTop: -80,marginBottom: -90 }}
                   resizeMode="contain"
                 />
               ))}

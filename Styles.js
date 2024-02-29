@@ -15,6 +15,7 @@ export const styles = StyleSheet.create({
       fontWeight: 'bold',
       //marginBottom: ,
       marginTop: 20,
+      marginBottom:8
     },
     searchInput: {
       height: 40,
@@ -72,12 +73,12 @@ export const styles = StyleSheet.create({
     },
     menuButtonContainer: {
       position: 'absolute',
-      top: 20,
+      top: 15,
       left: 10,
       marginBottom: 20,
     },
     menuButtonText: {
-      fontSize: 30,
+      fontSize: 26,
       fontWeight: 'bold',
       color: 'black',
     },
@@ -231,7 +232,7 @@ export const styles = StyleSheet.create({
       alignItems: 'center',
     },
     closeButton:{
-    top:15,
+    top:10,
     backgroundColor:'black',
     borderRadius:20,
     padding:5,
@@ -241,11 +242,12 @@ export const styles = StyleSheet.create({
     fontSize:14 
     },
     modalText1:{
-    fontSize:16,
+    fontSize:15,
     textAlign: 'center', // 텍스트를 가운데 정렬
+    top:-10
     },
     heading: {
-      fontSize: 23, // 텍스트 크기 조절
+      fontSize: 22, // 텍스트 크기 조절
       fontWeight: 'bold', // 볼드체로 설정
       alignItems: 'center',
       justifyContent: 'center',
@@ -259,16 +261,20 @@ export const styles = StyleSheet.create({
       alignItems: 'center', // 세로 가운데 정렬
       position: 'relative', // 부모 요소에 상대적인 위치를 설정
       alignSelf: 'flex-end', // 오른쪽 끝으로 이동
-      bottom:20,
-      right:5
+      bottom:23,
+      right:5,
+      marginBottom: -10,
+      marginTop: -10
     },
     helpIcon: {
       width: 16, // 아이콘의 너비 설정
       height:16, // 아이콘의 높이 설정
       marginRight: 5, // 아이콘과 텍스트 사이의 간격 조절
+      top:2
     },
     helpButtonText: {
-      fontSize: 15, // 텍스트의 크기 설정
+      fontSize: 16, // 텍스트의 크기 설정
       // 다른 텍스트 스타일들...
+      top:2
     },
   });
