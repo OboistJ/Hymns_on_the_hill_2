@@ -293,7 +293,4 @@ export const styles = StyleSheet.create({
       // 다른 텍스트 스타일들...
     },
 
-
-    
-
   });

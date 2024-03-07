@@ -548,8 +548,13 @@ const LyricsTab = () => (
       showsHorizontalScrollIndicator={false}
       //showsVerticalScrollIndicator={false}
     >
+      
+      <Text style={{ fontSize: 27, padding: 10 , fontWeight:'bold'}}>
+        {imageName}
+      </Text>
+      
     {lyrics.map((line, index) => (
-      <Text key={index} style={{ padding: 10 }}>
+      <Text key={index} style={{ fontSize: 27, padding: 10 }}>
         {line}
       </Text>
     ))}
