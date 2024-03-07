@@ -1,7 +1,7 @@
 import React, { useState, useEffect,useRef,useLayoutEffect,useCallback} from 'react';
 import { NavigationContainer,useFocusEffect,useNavigation,useNavigationState} from '@react-navigation/native';
 import { createStackNavigator,CardStyleInterpolators} from '@react-navigation/stack';
-import { View, Text, FlatList, TouchableOpacity, TextInput,Image, ScrollView, Modal, TouchableWithoutFeedback,Animated,Linking,Pressable,Alert,Dimensions} from 'react-native'; // Image 컴포넌트 추가
+import { View, Text, FlatList, TouchableOpacity, TextInput,Image, ScrollView, Modal, TouchableWithoutFeedback,Animated,Dimensions,Linking,Pressable,Alert} from 'react-native'; // Image 컴포넌트 추가
 import Swipeout from 'react-native-swipeout'; // react-native-swipeout 라이브러리 추가
 import AsyncStorage from '@react-native-async-storage/async-storage'; // AsyncStorage 추가
 import { Audio } from 'expo-av'; // Expo Audio API 불러오기
@@ -10,8 +10,23 @@ import { IMAGE_DATA } from './ImageData';
 import { styles } from './Styles';
 import { imageSources } from './ImageSources';
 import { soundSources } from './SoundSources';
+import { lyricsSources } from './lyricsSoures';
 import Slider from '@react-native-community/slider';
-import { PinchGestureHandler, State, PanGestureHandler,TapGestureHandler } from 'react-native-gesture-handler';
+import * as Font from 'expo-font';
+import  {  ReactNativeZoomableView  }  from  '@openspacelabs/react-native-zoomable-view' ;
+import { TabView,TabBar, SceneMap } from 'react-native-tab-view';
+
+
+async function loadFonts() {
+  await Font.loadAsync({
+    'HakgyoansimBareonbatangB': require('./assets/fonts/HakgyoansimBareonbatangB.ttf'),
+    'NotoSansKR-Regular': require('./assets/fonts/NotoSansKR-Regular.ttf'),
+    'NotoSansKR-Bold': require('./assets/fonts/NotoSansKR-Bold.ttf'),
+
+  });
+}
+
+
 
 const formatTime = (milliseconds) => {
   const totalSeconds = Math.floor(milliseconds / 1000);
@@ -87,7 +102,7 @@ const OpeningScreen = ({ navigation }) => {
 
 
 
-const HomeScreen = () => {
+const HomeScreen = (route) => {
 
   const navigation = useNavigation(); 
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,6 +112,20 @@ const HomeScreen = () => {
   const [swipeLocked, setSwipeLocked] = useState(false);
   
   const [modalVisible2, setModalVisible2] = useState(false);
+  
+  const flatListRef = useRef(); // FlatList 참조를 저장하기 위한 ref
+  const { scrollToIndex } = route.params || {};
+
+  useEffect(() => {
+    if (scrollToIndex !== undefined && flatListRef.current) {
+      flatListRef.current.scrollToIndex({ animated: true, index: scrollToIndex });
+    }
+  }, [scrollToIndex]);
+
+  // 앱이 로드될 때 글꼴 로드하기
+useEffect(() => {
+  loadFonts();
+}, []);
 
   const openModal2 = () => {
     setModalVisible2(true);
@@ -314,9 +343,9 @@ const HomeScreen = () => {
         onOpen={() => toggleSwipeout(item.id)}
         onClose={handleSwipeClose}
       >
-        <TouchableOpacity onPress={() => navigation.navigate(item.name, { imageName: item.name })}>
+      <TouchableOpacity onPress={() => navigation.navigate('ImageDetail', { imageName: item.name })}>
           <View style={styles.itemContainer}>
-            <Text style={[styles.itemName, { fontWeight: item.favorite ? 'bold' : 'normal', color: item.favorite ? 'black' : 'black' }]}>
+            <Text style={[styles.itemName, { fontFamily: item.favorite ? 'NotoSansKR-Bold' : 'NotoSansKR-Regular', color: item.favorite ? 'black' : 'black' }]}>
               {item.name}
             </Text>
           </View>
@@ -338,7 +367,7 @@ const HomeScreen = () => {
       {/* 모달 컴포넌트 추가 */}
       <HelpModal visible={modalVisible2} onClose={closeModal2} />
 
-        <TextInput
+      <TextInput
     style={styles.searchInput}
     placeholder="장, 제목, 가사로 검색"
     value={searchQuery}
@@ -346,12 +375,15 @@ const HomeScreen = () => {
     />
 <TouchableOpacity onPress={clearSearch} style={[styles.clearButton, searchQuery ? null : styles.clearButtonDisabled]}>
   <Image
+    source={require('./images/SearchCancel.png')}
     style={styles.clearButtonImage}
   />
 </TouchableOpacity>
 
   
 <FlatList
+      ref={flatListRef}
+
   contentContainerStyle={styles.scrollViewContent}
   keyboardDismissMode="on-drag" // 스크롤 중에 키보드를 자동으로 닫기
   data={filteredNames}
@@ -365,6 +397,7 @@ const HomeScreen = () => {
     />
   )}
   keyExtractor={(item) => item.id.toString()}
+  ItemSeparatorComponent={() => <View style={styles.separator} />} // 여기에 구분선 컴포넌트 추가
 />
 
       <View style={styles.menuButtonContainer}>
@@ -387,11 +420,11 @@ const HomeScreen = () => {
   <View style={styles.modalContent}>
     {/* 모달 내용 추가 */}
     <TouchableOpacity onPress={navigateToNewSongScreen}>
-      <Text style={styles.modalItem}> -   더욱 소중히 불러보고 싶은 찬송</Text>
+      <Text style={styles.modalItem}> ♫    더욱 소중히 불러보고 싶은 찬송</Text>
     </TouchableOpacity>
           {/* Add a menu item for '진토리 홈페이지' */}
           <TouchableOpacity onPress={navigateToJintoriWebsite}>
-            <Text style={styles.modalItem}> -   진토리 홈페이지</Text>
+            <Text style={styles.modalItem}> ✚    진토리 홈페이지</Text>
           </TouchableOpacity>
   </View>
 </Modal>
@@ -399,17 +432,24 @@ const HomeScreen = () => {
   );
 };
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+setY = height * 0.2
 
 const ImageDetailScreen = ({ route,navigation }) => {
   const { imageName } = route.params;
 
-  // 이미지 이름에 따라 해당 이미지를 가져오는 함수
-
-  // 이미지 제목에 해당하는 이미지 가져오기 
   const images = imageSources[imageName];
-  
   const soundSource = soundSources[imageName];
+  const lyrics = lyricsSources[imageName]; // 가사 데이터
+
+  // 초기 탭 인덱스와 라우트 설정
+  const [tabIndex, setTabIndex] = useState(0); // 탭 인덱스 상태를 위한 변수명 변경
+  const [routes] = useState([
+    { key: 'images', title: '악보' },
+    { key: 'lyrics', title: '가사' },
+  ]);
+
+
   const [sound, setSound] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false); // 즐겨찾기 상태
@@ -418,144 +458,157 @@ const ImageDetailScreen = ({ route,navigation }) => {
   const [isLooping, setIsLooping] = useState(false);
   const [isLoading, setIsLoading] = useState(true); // 새로운 state 추가
 
-  useEffect(() => {
-    let isMounted = true;
-  
-    const loadSound = async () => {
-      if (!soundSource) {
-        setIsLoading(false);
-        return;
-      }
-  
-      if (sound) {
-        await sound.unloadAsync();
-      }
-  
-      const { sound: newSound, status } = await Audio.Sound.createAsync(
-        soundSource,
-        { shouldPlay: isPlaying },
-        (status) => updatePlaybackStatus(status),
-        false
-      );
-  
-      if (isMounted) {
-        setSound(newSound);
-        updatePlaybackStatus(status); // 초기 상태 업데이트
-      }
-    };
-  
-    loadSound();
-  
-    return () => {
-      isMounted = false;
-      sound?.unloadAsync();
-    };
-  }, [soundSource]); // 의존성 배열에 imageName 추가
-
-  useFocusEffect(
-    React.useCallback(() => {
-      let isActive = true; // 컴포넌트 활성화 상태 추적
-  
-      const fetchCurrentPlaybackStatus = async () => {
-        if (sound) {
-          const status = await sound.getStatusAsync();
-          if (isActive) {
-            setIsPlaying(status.isPlaying);
-            setPlaybackPosition(status.positionMillis);
-            setPlaybackDuration(status.durationMillis || 0);
-          }
-        }
-      };
-  
-      fetchCurrentPlaybackStatus();
-  
-      return () => {
-        isActive = false; // 컴포넌트 비활성화 시 상태 업데이트 방지
-      };
-    }, [sound])
-  );
+  const imageKeys = Object.keys(imageSources); // 이미지 키 배열 생성
+  const currentIndex = imageKeys.indexOf(imageName); // 현재 이미지 인덱스 찾기
 
 
 
-const updatePlaybackStatus = (status) => {
-  if (!status.isLoaded) {
-    setIsLoading(true);
-    return;
+  // Images 탭의 콘텐츠를 렌더링하는 컴포넌트
+const ImagesTab = () => (
+  <View >
+    <ScrollView
+      contentContainerStyle={{ flexGrow: 1 }}
+      //maximumZoomScale={2}
+      //minimumZoomScale={1}
+      showsHorizontalScrollIndicator={false}
+      //showsVerticalScrollIndicator={false}
+    >
+    
+   <View style={{ flexGrow: 1}}>
+
+    
+       
+      <ReactNativeZoomableView   style={{ flexGrow: 1}}// ZoomableView 추가
+      
+      maxZoom={images.length > 1 ? 4 : 2} // 최대 줌 배율
+      minZoom={images.length > 1 ? 2.2 : 1}
+      zoomStep={4} // 줌 단계
+      initialZoom={images.length > 1 ? 2.2: 1} // 초기 줌 배율
+      bindToBorders={true}
+      initialOffsetY={images.length > 1 ? setY: 1}
+          
+          
+          
+        >
+      {images.map((image, index) => (
+        <Image key={index} source={image} style={images.length > 1 ? styles.image2 : styles.image} />
+      ))}
+      </ReactNativeZoomableView>
+      
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' ,top:0}}>
+      <Text>{formatTime(playbackPosition)} / {formatTime(playbackDuration)}</Text>
+  <View style={{ flexDirection: 'row' }}>
+  <Slider
+          style={{ width: 300, height: 40, bottom:5}}
+          minimumValue={0}
+          maximumValue={1}
+          value={playbackPosition / playbackDuration}
+          onValueChange={handleSliderValueChange}
+          minimumTrackTintColor="#50594f"
+          maximumTrackTintColor="#CCCCCC" 
+          thumbTintColor="#88ab85" 
+        />
+  {/* 반복 재생 토글 버튼 */}
+</View>
+<View style={{ flexDirection: 'row', justifyContent: 'center',left: 8, bottom:10}}>
+<TouchableOpacity onPress={handleRestart} style={{ marginRight: 20 }}>
+            <Image source={require('./images/backward.png')} style={{ width: 30, height: 30}} />
+          </TouchableOpacity>
+  {/* 재생/일시정지 토글 버튼 */}
+            <TouchableOpacity onPress={handleTogglePlayPause} style={{ marginRight: 40,marginLeft:30}}>
+            <Image
+              source={isPlaying ? require('./images/pause.png') : require('./images/play.png')}
+              style={{ width: 30, height: 30}}
+            />
+          </TouchableOpacity>
+
+  {/* 반복 재생 토글 버튼 */}
+  <TouchableOpacity onPress={toggleLooping} style={{ marginRight: 20 }}>
+  <Image
+    source={isLooping ? require('./images/looping.png') : require('./images/nonloop.png')} // 이미지 경로는 실제 프로젝트 구조에 맞게 조정
+    style={{ width: 30, height: 30 }}// 이미지 크기 조정
+  /> 
+   </TouchableOpacity>
+   
+</View>
+
+      </View>
+      
+     
+      </View>
+      </ScrollView>
+  </View>
+);
+
+// Lyrics 탭의 콘텐츠를 렌더링하는 컴포넌트
+const LyricsTab = () => (
+  <ScrollView 
+      //maximumZoomScale={2}
+      //minimumZoomScale={1}
+      showsHorizontalScrollIndicator={false}
+      //showsVerticalScrollIndicator={false}
+    >
+    {lyrics.map((line, index) => (
+      <Text key={index} style={{ padding: 10 }}>
+        {line}
+      </Text>
+    ))}
+      </ScrollView>
+ 
+);
+
+
+
+
+
+// renderScene을 직접 구현하여 SceneMap 대신 사용
+const renderScene = ({ route }) => {
+  switch (route.key) {
+    case 'images':
+      return <ImagesTab />;
+    case 'lyrics':
+      return <LyricsTab />;
+    default:
+      return null;
   }
-  setIsLoading(false);
-  setIsPlaying(status.isPlaying);
-  setPlaybackPosition(status.positionMillis);
-  setPlaybackDuration(status.durationMillis);
+};
+// TabView 컴포넌트와 상태 설정
+const MyTabView = () => {
+  const [index, setIndex] = useState(0);
+  const [routes] = useState([
+    { key: 'images', title: '악보' },
+    { key: 'lyrics', title: '가사' },
+  ]);
+
+  
+
+  
 };
 
-const handleTogglePlayPause = async () => {
-  // 음원 소스가 없거나 sound 객체가 없는 경우 경고 메시지 표시
-  if (!soundSource || !sound) {
-    Alert.alert("음원 미등록", "음원이 아직 준비중입니다.");
-    return;
-  }
-
-  // 재생 상태에 따라 재생 또는 일시 정지
-  if (isPlaying) {
-    await sound.pauseAsync();
-  } else {
-    await sound.playAsync();
-  }
-  
-  // 상태 직접 토글
-  setIsPlaying(!isPlaying);
-};
-
-// 재생/정지 버튼 로직 수정
-// 슬라이더 및 기타 버튼 로직 유지
-
-  const handleRestart = async () => {
-    if (sound) {
-      await sound.setPositionAsync(0);
-      if (!isPlaying) {
-        await sound.playAsync();
-        setIsPlaying(true);
-      }
-    }
-  };
-  
-// 슬라이더 값 변경 핸들러
-const handleSliderValueChange = async (value) => {
-  if (!sound || isLoading) return; // 오디오 로딩 중이거나 sound 객체가 없을 때는 실행 중지
-  const newPosition = value * playbackDuration;
-  await sound.setPositionAsync(newPosition).then(() => {
-    setPlaybackPosition(newPosition);
-  });
-};
-
-
-  const toggleLooping = async () => {
-    if (sound) {
-      const newLoopingStatus = !isLooping;
-      await sound.setIsLoopingAsync(newLoopingStatus);
-      setIsLooping(newLoopingStatus);
-    }
-  };
 
   
+ 
   // 이미지 이름으로부터 인덱스 찾기
   const imageNames = Object.keys(imageSources); // 모든 이미지 이름을 배열로 변환
   const index = imageNames.indexOf(imageName); // 현재 이미지의 인덱스
 
   const goToPrevious = () => {
-    if(index > 0) {
-      const prevImageName = imageNames[index - 1];
-      navigation.replace('ImageDetailScreen', { imageName: prevImageName, direction: 'back' });
+    if (currentIndex > 0) {
+      const prevImageName = imageKeys[currentIndex - 1];
+      // replace 대신 push 사용
+      navigation.push('ImageDetailScreen', { imageName: prevImageName, direction: 'back' });
     }
   };
-
+  
   const goToNext = () => {
-    if(index < imageNames.length - 1) {
-      const nextImageName = imageNames[index + 1];
-      navigation.replace('ImageDetailScreen', { imageName: nextImageName });
+    if (currentIndex < imageKeys.length - 1) {
+      const nextImageName = imageKeys[currentIndex + 1];
+      // replace 대신 push 사용
+      navigation.push('ImageDetailScreen', { imageName: nextImageName });
     }
   };
 
+  
  
 useLayoutEffect(() => {
   navigation.setOptions({
@@ -569,35 +622,34 @@ useLayoutEffect(() => {
     ),
     headerLeft: () => (
       <View style={styles.headerLeftContainer}>
-        {/* 목록으로 돌아가기 버튼 */}
-        <TouchableOpacity onPress={() => navigation.replace('Home', { direction: 'back' })}>
+      <TouchableOpacity onPress={() => navigation.replace('Home', { direction: 'back' })}>
           <Image
             source={require('./images/previous.png')}
             style={styles.buttonImagePrevIndex}
           />
           <Text style={styles.buttonTextIndex}>목록</Text>
         </TouchableOpacity>
-
-        {/* 이전 버튼 - 비활성화 상태 없이 항상 표시 */}
-        <TouchableOpacity onPress={goToPrevious}>
-          <Image
-            source={require('./images/previous.png')}
-            style={styles.buttonImagePrev}
-          />
+        <TouchableOpacity onPress={goToPrevious} style={{ flexDirection: 'row', alignItems: 'center',  position: 'absolute',   left: 100 ,}}>
+           <Image
+                source={require('./images/previous.png')}
+                style={{ flexDirection: 'row', alignItems: 'center',  width: 22, height: 22}}
+              />
+          {/* <Text style={{fontSize: 20,color: 'white',}}>이전</Text> */}
         </TouchableOpacity>
       </View>
     ),
+ 
     headerRight: () => (
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity onPress={goToNext}>
-          <Image
-            source={require('./images/next.png')} // 이미지 경로를 여기에 입력하세요.
-            style={styles.buttonImageNext}
-          />
-        </TouchableOpacity>
-      </View>
-      
+      <TouchableOpacity onPress={goToNext} style={{ flexDirection: 'row', alignItems: 'center', position: 'absolute',  right: 80 }}>
+        {/* <Text style={{fontSize: 20,color: 'white',}}>다음</Text> */}
+        <Image
+                source={require('./images/next.png')}
+                style={{ flexDirection: 'row', alignItems: 'center',  width: 22, height: 22}}
+              />
+      </TouchableOpacity>
     ),
+      
+    
     title: `${imageNames[index].match(/\d+/)}장`,
     headerTitleStyle: {
       fontSize: 23, // 여기에서 폰트 사이즈를 원하는 크기로 조정하세요.
@@ -607,216 +659,110 @@ useLayoutEffect(() => {
   });
 }, [navigation, imageNames, index, goToPrevious, goToNext,isFavorite, route.params]);
 
+useEffect(() => {
+  loadSound();
 
+  return () => sound?.unloadAsync();
+}, [soundSource]);
 
-  useEffect(() => {
-    const loadSound = async () => {
-      try {
-        console.log('사운드 로딩 중...');
-        const { sound } = await Audio.Sound.createAsync(soundSource);
-        setSound(sound);
-        console.log('사운드 로딩 완료.');
-      } catch (error) {
-        console.log('사운드 로딩 오류', error);
-      }
-    };
+async function loadSound() {
+  if (sound) {
+    await sound.unloadAsync();
+  }
+  setIsLoading(true);
+  const { sound: newSound, status } = await Audio.Sound.createAsync(
+    soundSource,
+    {
+      isLooping: isLooping,
+      isPlaying: isPlaying,
+      positionMillis: 0,
+      shouldPlay: isPlaying,
+    },
+    onPlaybackStatusUpdate
+  );
+  setSound(newSound);
+  setIsLoading(false);
+  onPlaybackStatusUpdate(status);
+}
 
-    loadSound();
+const onPlaybackStatusUpdate = (status) => {
+  if (!status.isLoaded) {
+    setIsLoading(true);
+    return;
+  }
+  setIsLoading(false);
+  setIsPlaying(status.isPlaying);
+  setPlaybackPosition(status.positionMillis);
+  setPlaybackDuration(status.durationMillis || 0);
+};
 
+const handleTogglePlayPause = async () => {
+  if (!sound) {
+    Alert.alert("음원 미등록", "음원이 아직 준비중입니다.");
+    return;
+  }
+
+  if (isPlaying) {
+    await sound.pauseAsync();
+  } else {
+    await sound.playAsync();
+  }
+};
+
+const handleRestart = async () => {
+  if (sound) {
+    await sound.setPositionAsync(0);
+    await sound.playAsync();
+  }
+};
+
+const handleSliderValueChange = async (value) => {
+  if (!sound || isLoading) return;
+  const newPosition = Math.floor(value * playbackDuration);
+  await sound.setPositionAsync(newPosition);
+};
+
+const toggleLooping = async () => {
+  if (sound) {
+    await sound.setIsLoopingAsync(!isLooping);
+    setIsLooping(!isLooping);
+  }
+};
+
+useFocusEffect(
+  React.useCallback(() => {
     return () => {
-      if (sound !== null) {
-        sound.unloadAsync(); // 페이지를 벗어날 때 오디오 언로드
-      }
+      sound?.stopAsync();
     };
-  }, [soundSource]);
+  }, [sound])
+);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      return () => {
-        if (sound !== null) {
-          sound.stopAsync(); // 페이지를 벗어날 때 오디오 정지
-        }
-      };
-    }, [sound]) 
-    
-  );
+const renderTabBar = props => (
+  <TabBar
+    {...props}
+    style={{ backgroundColor: 'white'  }} // 예: 'red', '#f00', 등
+    indicatorStyle={{ backgroundColor: 'gray' }}
+    labelStyle={{ color: 'black' }}
+    activeColor="black"
+    inactiveColor="black"
+  />
+);
 
-
-  const scale = useRef(new Animated.Value(1)).current;
-  const translateX = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
-  const lastScale = useRef(1);
-  const lastOffset = useRef({ x: 0, y: 0 });
-  
-  const [isPanEnabled, setIsPanEnabled] = useState(false);
-  
-  const doubleTapRef = useRef(); // 더블 탭 핸들러 참조
-
-  const pinchRef = useRef(null);
-  const panRef = useRef(null);
-
-  // 더블 탭 핸들러
-  const onDoubleTap = event => {
-    if (event.nativeEvent.state === State.ACTIVE) {
-      Animated.timing(scale, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start(() => {
-        lastScale.current = 1;
-        scale.setValue(1);
-        setIsPanEnabled(false);
-        // 위치 초기화
-        lastOffset.current = { x: 0, y: 0 };
-        translateX.setOffset(0);
-        translateY.setOffset(0);
-        translateX.setValue(0);
-        translateY.setValue(0);
-      });
-    }
-  };
-  
-  // 핀치 제스처 이벤트 핸들러
-  const onPinchGestureEvent = Animated.event([{ nativeEvent: { scale: scale } }], { useNativeDriver: true });
-
-  // 팬 제스처 이벤트 핸들러
-  const onPanGestureEvent = Animated.event(
-    [{ nativeEvent: { translationX: translateX, translationY: translateY } }],
-    { useNativeDriver: true }
-  );
-
-  // 핀치 제스처 상태 변경 핸들러
-  const onPinchHandlerStateChange = event => {
-    if (event.nativeEvent.oldState === State.ACTIVE) {
-      const newScale = lastScale.current * event.nativeEvent.scale;
-      lastScale.current = Math.max(1, Math.min(newScale, 3)); // 최소 1, 최대 3으로 스케일 조정
-      scale.setValue(lastScale.current);
-      
-      // 확대/축소 상태에 따라 팬 활성화 상태와 위치 초기화 결정
-      setIsPanEnabled(lastScale.current > 1.1);
-      
-      // 스케일이 1로 돌아왔을 때 위치 초기화
-      if (lastScale.current <= 1.1) {
-        // 위치를 초기화하는 로직
-        lastOffset.current = { x: 0, y: 0 }; // 위치 초기화
-        translateX.setOffset(0);
-        translateY.setOffset(0);
-        translateX.setValue(0);
-        translateY.setValue(0);
-      }
-    }
-  };
-
-
-  const onPanHandlerStateChange = event => {
-    if (event.nativeEvent.oldState === State.ACTIVE && lastScale.current > 1) {
-      const imageSize = { width: screenWidth, height: screenHeight }; // 이미지 크기 정보
-      const scaledWidth = imageSize.width * lastScale.current;
-      const scaledHeight = imageSize.height * lastScale.current;
-      const maxX = Math.max(0, (scaledWidth - screenWidth) / 2);
-      const maxY = Math.max(0, (scaledHeight - screenHeight) / 0.3);
-  
-      // 현재 위치 및 이동량 계산
-      let newX = lastOffset.current.x + event.nativeEvent.translationX;
-      let newY = lastOffset.current.y + event.nativeEvent.translationY;
-  
-      // 좌표의 최대치 설정
-      newX = Math.min(Math.max(newX, -maxX), maxX);
-      newY = Math.min(Math.max(newY, -maxY), maxY);
-  
-      // 좌표 업데이트
-      lastOffset.current.x = newX;
-      lastOffset.current.y = newY;
-  
-      // translateX, translateY에 적용
-      translateX.setOffset(newX);
-      translateX.setValue(0);
-      translateY.setOffset(newY);
-      translateY.setValue(0);
-    }
-  };
-
-  return (
-    <TapGestureHandler
-    onHandlerStateChange={onDoubleTap}
-    numberOfTaps={2}
-    ref={doubleTapRef}
-  >
-    <ScrollView
-    contentContainerStyle={{ flexGrow: 1 }}
-    showsHorizontalScrollIndicator={false}
-    showsVerticalScrollIndicator={false}
-    nestedScrollEnabled={false} // ScrollView가 내부 제스처 감지
-    scrollEnabled={!isPanEnabled} // 팬 활성화 상태에 따라 스크롤뷰 활성화/비활성화
-  >
-    <View style={{ flex: 1 }}>
-   
-      <PinchGestureHandler
-        onGestureEvent={onPinchGestureEvent}
-        onHandlerStateChange={onPinchHandlerStateChange}
-        minScale={1} // 최소 스케일 설정
-        maxScale={3}
-        ref={doubleTapRef} // 더블 탭 핸들러 참조 추가
-      >
-        <Animated.View style={{ flex: 1 }}>
-          <PanGestureHandler
-            enabled={isPanEnabled} // 상태에 따라 팬 제스처 활성화/비활성화
-            onGestureEvent={onPanGestureEvent}
-            onHandlerStateChange={onPanHandlerStateChange}
-            scrollEnabled={!isPanEnabled} // 팬 활성화 상태에 따라 스크롤뷰 활성화/비활성화
-            simultaneousHandlers={pinchRef} // 여기에도 simultaneousHandlers 속성 추가
-          >
-        <Animated.View style={{ flex: 1, transform: [{ scale: scale }, { translateX: translateX }, { translateY: translateY }] }}>
-              {images.map((image, index) => (
-                <Image
-                  key={index}
-                  source={image}
-                  style={{ width: screenWidth, height: screenHeight ,marginTop: -80,marginBottom: -90 }}
-                  resizeMode="contain"
-                />
-              ))}
-    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 40, marginBottom: 10 }}>
-        <Slider
-          style={{ width: 300, height: 40}}
-          minimumValue={0}
-          maximumValue={1}
-          value={playbackPosition / playbackDuration}
-          onValueChange={handleSliderValueChange}
-        />
-  {/* 반복 재생 토글 버튼 */}
-</View>
-<View style={{ flexDirection: 'row' }}>
-<TouchableOpacity onPress={handleRestart} style={{ marginLeft:75,marginRight: 56 }}>
-            <Image source={require('./images/backward.png')} style={{ width: 30, height: 30, }} />
-          </TouchableOpacity>
-  {/* 재생/일시정지 토글 버튼 */}
-            <TouchableOpacity onPress={handleTogglePlayPause} style={{ marginRight: 80,marginLeft:30 }}>
-            <Image
-              source={isPlaying ? require('./images/pause.png') : require('./images/play.png')}
-              style={{ width: 30, height: 30 }}
-            />
-          </TouchableOpacity>
- {/* 반복 재생 토글 버튼 */}
-  <TouchableOpacity onPress={toggleLooping} style={styles.loopButton}>
-  <Image
-    source={isLooping ? require('./images/looping.png') : require('./images/nonloop.png')} // 이미지 경로는 실제 프로젝트 구조에 맞게 조정
-    style={{ width: 35, height: 35, marginBottom:50,bottom:5}} // 이미지 크기 조정
-  /> 
-   </TouchableOpacity>
-              </View>
-            </Animated.View>
-          </PanGestureHandler>
-        </Animated.View>
-      </PinchGestureHandler>
-      
-    </View>
-  </ScrollView>
-  </TapGestureHandler>
-  );
+return (
+  <TabView // 탭 바의 배경 색상
+  navigationState={{ index: tabIndex, routes }}
+  renderScene={renderScene}
+  onIndexChange={setTabIndex} // 상태 업데이트 함수명도 변경
+  initialLayout={{ width: '100%' }}
+   renderTabBar={renderTabBar}
+/>
+);
 };
 
 
-const ImageDetails_New = ({ route}) => {
+
+
+const ImageDetails_New = ({ route,navigation}) => {
   const { imageName, favoriteSongs } = route.params;
 
   // 이미지와 오디오 소스 상태 추가
@@ -830,149 +776,8 @@ const ImageDetails_New = ({ route}) => {
   const [isLooping, setIsLooping] = useState(false);
   const [isLoading, setIsLoading] = useState(true); // 새로운 state 추가
 
-
-  
-  const navigation = useNavigation();
-
   const currentIndex = favoriteSongs.findIndex(song => song.name === imageName);
   const [index, setIndex] = useState(currentIndex);
-
-  const updatePlaybackStatus = (status) => {
-    if (!status.isLoaded) {
-      setIsLoading(true); // 로딩 중 상태 활성화
-      return;
-    }
-    if (status.isPlaying) {
-      setIsLoading(false); // 로딩 완료 상태 활성화
-      setIsPlaying(true); // 재생 중 상태로 설정
-      setPlaybackPosition(status.positionMillis); // 현재 재생 위치 업데이트
-      setPlaybackDuration(status.durationMillis); // 총 재생 시간 업데이트
-    } else {
-      // 재생 중이 아닐 경우, isPlaying 상태를 false로 설정할 필요가 있으나, 
-      // 사용자가 직접 정지 버튼을 누른 경우에만 상태를 변경하므로 여기서는 설정하지 않음
-    }
-  };
-
-  useFocusEffect(
-    React.useCallback(() => {
-      // 포커스가 될 때 실행할 로직
-      const checkAndSetAudioState = async () => {
-        if (!sound) {
-          // sound 객체가 없다면 새로 로드
-          try {
-            const { sound: loadedSound } = await Audio.Sound.createAsync(soundSource);
-            setSound(loadedSound);
-            if (isPlaying) {
-              await loadedSound.playAsync();
-            }
-          } catch (error) {
-            console.error("오디오 로드 실패:", error);
-          }
-        } else {
-          // 이미 sound 객체가 있다면 재생 상태 확인 및 설정
-          const status = await sound.getStatusAsync();
-          setIsPlaying(status.isPlaying);
-          if (isPlaying && !status.isPlaying) {
-            await sound.playAsync();
-          }
-        }
-      };
-  
-      checkAndSetAudioState();
-  
-      return () => {
-        // 포커스를 잃을 때 실행할 로직 (필요한 경우)
-      };
-    }, [sound, isPlaying, soundSource])
-  );
-  
-  // 인덱스가 변경될 때마다 이미지와 오디오 소스를 업데이트
-  useEffect(() => {
-    setCurrentImage(imageSources[favoriteSongs[index].name][0]);
-    setSoundSource(soundSources[favoriteSongs[index].name]);
-  }, [index, favoriteSongs]);
-
-
-  useEffect(() => {
-    let isMounted = true;
-  
-    const loadSound = async () => {
-      // soundSource가 없다면 초기 로딩을 중단
-      if (!soundSource) {
-        setIsLoading(false); // 로딩 상태를 false로 설정
-        return;
-      }
-      // 기존에 로드된 오디오가 있다면 언로드
-      if (sound) {
-        await sound.unloadAsync();
-        setSound(null); // sound 상태 초기화
-      }
-  
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        soundSource,
-        null, // 재생 옵션은 기본값 사용
-        (status) => updatePlaybackStatus(status), // 상태 업데이트 함수를 콜백으로 전달
-        false, // 로드 시 자동재생은 비활성화
-        true // mixWithOthers 옵션, 필요에 따라 설정
-      );
-      if (isMounted) {
-        setSound(newSound);
-      }
-    };
-  
-    loadSound().catch(console.error);
-  
-    return () => {
-      isMounted = false;
-      sound?.unloadAsync();
-    };
-  }, [soundSource]); 
-
-
-const handleTogglePlayPause = async () => {
-  // 음원 소스가 없는 경우 경고창을 띄우고 함수 실행 중단
-  if (!soundSource) {
-    Alert.alert("음원 미등록", "음원이 아직 준비중입니다.");
-    return;
-  }
-
-  if (!sound) return;
-
-  if (isPlaying) {
-    await sound.pauseAsync();
-  } else {
-    await sound.playAsync();
-  }
-  // 함수형 업데이트로 최신 상태 반영
-  setIsPlaying(prev => !prev);
-};
-
-  const handleRestart = async () => {
-    if (sound) {
-      await sound.setPositionAsync(0);
-      if (!isPlaying) {
-        await sound.playAsync();
-        setIsPlaying(true);
-      }
-    }
-  };
-  
-// 슬라이더 값 변경 핸들러
-const handleSliderValueChange = async (value) => {
-  if (!sound || isLoading) return; // 오디오 로딩 중이거나 sound 객체가 없을 때는 실행 중지
-  const newPosition = value * playbackDuration;
-  await sound.setPositionAsync(newPosition).then(() => {
-    setPlaybackPosition(newPosition);
-  });
-};
-
-  const toggleLooping = async () => {
-    if (sound) {
-      const newLoopingStatus = !isLooping;
-      await sound.setIsLoopingAsync(newLoopingStatus);
-      setIsLooping(newLoopingStatus);
-    }
-  };
 
   const goToPrevious = () => {
     if (index <= 0) {
@@ -980,7 +785,7 @@ const handleSliderValueChange = async (value) => {
     }
     const previousIndex = index - 1;
     // 페이지 교체 로직, 예를 들어
-    navigation.replace('ImageDetails_New', { 
+    navigation.push('ImageDetails_New', { 
       imageName: favoriteSongs[previousIndex].name, 
       favoriteSongs: favoriteSongs,
       direction: 'back'
@@ -993,7 +798,7 @@ const handleSliderValueChange = async (value) => {
     }
     const nextIndex = index + 1;
     // 페이지 교체 로직, 예를 들어
-    navigation.replace('ImageDetails_New', { 
+    navigation.push('ImageDetails_New', { 
       imageName: favoriteSongs[nextIndex].name, 
       favoriteSongs: favoriteSongs 
     });
@@ -1032,123 +837,201 @@ const handleSliderValueChange = async (value) => {
         ),
         headerLeft: () => (
           <View style={styles.headerLeftContainer}>
-            {/* 목록으로 돌아가기 버튼 */}
-            <TouchableOpacity onPress={() => navigation.goBack}>
-              <Image
-                source={require('./images/previous.png')}
-                style={styles.buttonImagePrevIndex}
-              />
-              <Text style={styles.buttonTextIndex}>목록</Text>
-            </TouchableOpacity>
-    
-            {/* 이전 버튼 */}
-            <TouchableOpacity onPress={() => navigation.goToPrevious}>
-              <Image
-                source={require('./images/previous.png')}
-                style={styles.buttonImagePrev}
-              />
+          <TouchableOpacity onPress={() => navigation.popToTop()}>
+          <Image
+             source={require('./images/previous.png')}
+            style={styles.buttonImagePrevIndex}
+         />
+          <Text style={styles.buttonTextIndex}>목록</Text>
+          </TouchableOpacity>
+
+            <TouchableOpacity onPress={goToPrevious} style={{ flexDirection: 'row', alignItems: 'center',  position: 'absolute',   left: 100 ,}}>
+               <Image
+                    source={require('./images/previous.png')}
+                    style={{ flexDirection: 'row', alignItems: 'center',  width: 22, height: 22}}
+                  />
+              {/* <Text style={{fontSize: 20,color: 'white',}}>이전</Text> */}
             </TouchableOpacity>
           </View>
         ),
+     
         headerRight: () => (
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={() => navigation.goToPrevious}>
-              <Image
-                source={require('./images/next.png')}
-                style={styles.buttonImageNext}
-              />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={goToNext} style={{ flexDirection: 'row', alignItems: 'center', position: 'absolute',  right: 80 }}>
+            {/* <Text style={{fontSize: 20,color: 'white',}}>다음</Text> */}
+            <Image
+                    source={require('./images/next.png')}
+                    style={{ flexDirection: 'row', alignItems: 'center',  width: 22, height: 22}}
+                  />
+          </TouchableOpacity>
         ),
+          
         title: `${currentSong.name.match(/\d+/)}장`,
         headerTitleStyle: {
           fontSize: 23,
         },
+        headerTitleAlign: 'center', // 타이틀을 가운데로 정렬
       });
     }, [navigation, currentSong, index, goToPrevious, goToNext]);
-    
-    
+
+    // 인덱스가 변경될 때마다 이미지와 오디오 소스를 업데이트
     useEffect(() => {
-      const loadSound = async () => {
-        try {
-          console.log('사운드 로딩 중...');
-          const { sound } = await Audio.Sound.createAsync(soundSource);
-          setSound(sound);
-          console.log('사운드 로딩 완료.');
-        } catch (error) {
-          console.log('사운드 로딩 오류', error);
-        }
-      };
-  
+      setCurrentImage(imageSources[favoriteSongs[index].name][0]);
+      setSoundSource(soundSources[favoriteSongs[index].name]);
+    }, [index, favoriteSongs]);
+    
+    
+
+    useEffect(() => {
       loadSound();
-  
-      return () => {
-        if (sound !== null) {
-          sound.unloadAsync(); // 페이지를 벗어날 때 오디오 언로드
-        }
-      };
+    
+      return () => sound?.unloadAsync();
     }, [soundSource]);
-  
+    
+    async function loadSound() {
+      if (sound) {
+        await sound.unloadAsync();
+      }
+      setIsLoading(true);
+      const { sound: newSound, status } = await Audio.Sound.createAsync(
+        soundSource,
+        {
+          isLooping: isLooping,
+          isPlaying: isPlaying,
+          positionMillis: 0,
+          shouldPlay: isPlaying,
+        },
+        onPlaybackStatusUpdate
+      );
+      setSound(newSound);
+      setIsLoading(false);
+      onPlaybackStatusUpdate(status);
+    }
+    
+    const onPlaybackStatusUpdate = (status) => {
+      if (!status.isLoaded) {
+        setIsLoading(true);
+        return;
+      }
+      setIsLoading(false);
+      setIsPlaying(status.isPlaying);
+      setPlaybackPosition(status.positionMillis);
+      setPlaybackDuration(status.durationMillis || 0);
+    };
+    
+    const handleTogglePlayPause = async () => {
+      if (!sound) {
+        Alert.alert("음원 미등록", "음원이 아직 준비중입니다.");
+        return;
+      }
+    
+      if (isPlaying) {
+        await sound.pauseAsync();
+      } else {
+        await sound.playAsync();
+      }
+    };
+    
+    const handleRestart = async () => {
+      if (sound) {
+        await sound.setPositionAsync(0);
+        await sound.playAsync();
+      }
+    };
+    
+    const handleSliderValueChange = async (value) => {
+      if (!sound || isLoading) return;
+      const newPosition = Math.floor(value * playbackDuration);
+      await sound.setPositionAsync(newPosition);
+    };
+    
+    const toggleLooping = async () => {
+      if (sound) {
+        await sound.setIsLoopingAsync(!isLooping);
+        setIsLooping(!isLooping);
+      }
+    };
+    
     useFocusEffect(
       React.useCallback(() => {
         return () => {
-          if (sound !== null) {
-            sound.stopAsync(); // 페이지를 벗어날 때 오디오 정지
-          }
+          sound?.stopAsync();
         };
-      }, [sound]) 
-      
+      }, [sound])
     );
+
+    const images = imageSources[imageName];
+
+    return (
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        //maximumZoomScale={2}
+        //minimumZoomScale={1}
+        showsHorizontalScrollIndicator={false}
+        //showsVerticalScrollIndicator={false}
+      >
+      <View style={{ flex: 1}}>
   
+      
+         
+        <ReactNativeZoomableView // ZoomableView 추가
+        
+        maxZoom={images.length > 1 ? 4 : 2} // 최대 줌 배율
+        minZoom={images.length > 1 ? 2.2 : 1}
+        zoomStep={4} // 줌 단계
+        initialZoom={images.length > 1 ? 2.2: 1} // 초기 줌 배율
+        bindToBorders={true}
+        initialOffsetY={images.length > 1 ? setY: 1}
+          >
+        {images.map((image, index) => (
+          <Image key={index} source={image} style={images.length > 1 ? styles.image2 : styles.image} />
+        ))}
+        </ReactNativeZoomableView>
+        
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' ,top:0}}>
+        <Text>{formatTime(playbackPosition)} / {formatTime(playbackDuration)}</Text>
+    <View style={{ flexDirection: 'row' }}>
+    <Slider
+            style={{ width: 300, height: 40, bottom:5}}
+            minimumValue={0}
+            maximumValue={1}
+            value={playbackPosition / playbackDuration}
+            onValueChange={handleSliderValueChange}
+            minimumTrackTintColor="#50594f"
+            maximumTrackTintColor="#CCCCCC" 
+            thumbTintColor="#88ab85" 
+          />
+    {/* 반복 재생 토글 버튼 */}
+  </View>
+  <View style={{ flexDirection: 'row', justifyContent: 'center',left: 8, bottom:5}}>
+  <TouchableOpacity onPress={handleRestart} style={{ marginRight: 20 }}>
+              <Image source={require('./images/backward.png')} style={{ width: 30, height: 30}} />
+            </TouchableOpacity>
+    {/* 재생/일시정지 토글 버튼 */}
+              <TouchableOpacity onPress={handleTogglePlayPause} style={{ marginRight: 40,marginLeft:30}}>
+              <Image
+                source={isPlaying ? require('./images/pause.png') : require('./images/play.png')}
+                style={{ width: 30, height: 30}}
+              />
+            </TouchableOpacity>
+  
+    {/* 반복 재생 토글 버튼 */}
+    <TouchableOpacity onPress={toggleLooping} style={{ marginRight: 20 }}>
+    <Image
+      source={isLooping ? require('./images/looping.png') : require('./images/nonloop.png')} // 이미지 경로는 실제 프로젝트 구조에 맞게 조정
+      style={{ width: 30, height: 30 }}// 이미지 크기 조정
+    /> 
+     </TouchableOpacity>
+     
+  </View>
+  
+        </View>
+        
+       
+        </View>
+        </ScrollView>
+    );
+  };
 
-  return (
-    <ScrollView 
-    contentContainerStyle={styles.scrollContainer}
-    maximumZoomScale={2}
-    minimumZoomScale={1}
-    showsHorizontalScrollIndicator={false}
-    showsVerticalScrollIndicator={false}
-    >
-
-    {currentImage && (
-        <Image key={index} source={currentImage} style={styles.image} />
-      )}    
-       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>{formatTime(playbackPosition)} / {formatTime(playbackDuration)}</Text>
-  <View style={{ flexDirection: 'row' }}>
-  <Slider
-          style={{ width: 300, height: 40}}
-          minimumValue={0}
-          maximumValue={1}
-          value={playbackPosition / playbackDuration}
-          onValueChange={handleSliderValueChange}
-        />
-  {/* 반복 재생 토글 버튼 */}
-</View>
-<View style={{ flexDirection: 'row' }}>
-<TouchableOpacity onPress={handleRestart} style={{ marginRight: 20 }}>
-            <Image source={require('./images/backward.png')} style={{ width: 30, height: 30, }} />
-          </TouchableOpacity>
-  {/* 재생/일시정지 토글 버튼 */}
-            <TouchableOpacity onPress={handleTogglePlayPause} style={{ marginRight: 40,marginLeft:30 }}>
-            <Image
-              source={isPlaying ? require('./images/pause.png') : require('./images/play.png')}
-              style={{ width: 30, height: 30 }}
-            />
-          </TouchableOpacity>
-
-  {/* 반복 재생 토글 버튼 */}
-  <TouchableOpacity onPress={toggleLooping} style={styles.loopButton}>
-  <Image
-    source={isLooping ? require('./images/looping.png') : require('./images/nonloop.png')} // 이미지 경로는 실제 프로젝트 구조에 맞게 조정
-    style={{ width: 35, height: 35, marginBottom:50,bottom:5}} // 이미지 크기 조정
-  /> 
-   </TouchableOpacity>
-</View>
-      </View>
-    </ScrollView>
-  );
-};
 
 const NewSongScreen = ({ route }) => {
   const { favoriteSongs } = route.params;
@@ -1210,7 +1093,7 @@ const NewSongScreen = ({ route }) => {
     >
       <TouchableOpacity onPress={() => navigateToImageDetail(item.name)}>
         <View style={styles.itemContainer}>
-          <Text style={[styles.itemName, { fontWeight: 'bold' }]}>
+          <Text style={[styles.itemName2, { fontWeight: 'bold' }]}>
             {item.name}
           </Text>
         </View>
@@ -1219,6 +1102,7 @@ const NewSongScreen = ({ route }) => {
   )}
         keyExtractor={(item) => item.id.toString()}        
         contentContainerStyle={{ paddingVertical: 5,}}
+        ItemSeparatorComponent={() => <View style={styles.separator} />} // 구분선 추가
       />
     </View>
   );
@@ -1227,6 +1111,12 @@ const NewSongScreen = ({ route }) => {
 const Stack = createStackNavigator(); 
 
 const App = () => {
+
+  //글꼴 추가
+  useEffect(() => {
+    loadFonts();
+  }, []);
+
   return (
     <View style={{ flex: 1 }}>
     <NavigationContainer>
@@ -1236,37 +1126,28 @@ const App = () => {
       screenOptions={({ route, navigation }) => ({
         // route.params.direction을 기반으로 애니메이션 설정을 조건부로 변경
         gestureDirection: route.params?.direction === 'back' ? 'horizontal-inverted' : 'horizontal',
-        // transitionSpec: {
-        //   open: { animation: 'timing', config: { duration: 300 } },
-        //   close: { animation: 'timing', config: { duration: 300 } },
-        // },
         headerShown:false
       })}      
       >
+      <Stack.Screen name="Home" component={HomeStack} />
+
       <Stack.Screen name="ImageDetailScreen" component={ImageDetailScreen}
-      options={{
-        gestureEnabled: false, // 여기에 추가
-      }}
+
       />
       <Stack.Screen name="ImageDetails_New" component={ImageDetails_New} />
 
         <Stack.Screen name="Opening" component={OpeningScreen} />
-        <Stack.Screen name="Home" component={HomeStack} />
         {/* 새로운 찬송 화면을 추가 */}
-        <Stack.Screen
+        <Stack.Screen 
           name="더욱 소중히 불러보고 싶은 찬송"
           component={NewSongScreen}
           options={{
-            // headerBackground: () => (
-            //   <Image
-            //     source={require('./images/coverImage.png')}
-            //     style={{ width: '100%', height: '110%', resizeMode: 'cover'}}
-            //   />
-            // ),
+
             headerBackTitle: '목록',
             headerTintColor: 'white',
             headerTitleStyle: {
-              fontSize: 18,
+              fontSize: 24,
+              fontFamily:'HakgyoansimBareonbatangB',
             }, 
           }}
         />
@@ -1300,7 +1181,7 @@ const HomeStack = () => {
   return (
     <Stack.Navigator initialRouteName="찬송 목록" screenOptions={{
       headerTitleStyle: {
-        fontSize: 20,
+        fontSize: 25,
 
       },
       headerBackground: () => (
@@ -1316,8 +1197,10 @@ const HomeStack = () => {
           headerTitle: '언덕 위의 찬송',
           headerTitleStyle: {
             fontSize: 30,
-            fontWeight: 'bold',
+            fontFamily:'HakgyoansimBareonbatangB',
             color: 'white',
+            
+            bottom:3
           },
           headerTitleAlign: 'center',
         })}
@@ -1334,13 +1217,6 @@ const HomeStack = () => {
             headerTitleStyle: {
               fontSize: 23, // 헤더 타이틀의 폰트 사이즈를 15로 설정
             },
-            // headerBackground: () => (
-            //   <Image
-            //     source={require('./images/coverImage.png')} // 배경이미지
-            //     style={{ width: '100%', height: '110%' }} // 이미지가 헤더 전체를 채우도록 설정
-            //   />),
-             // title: item.name.match(/\d+/) ? item.name.match(/\d+/)[0] + '장' : '번호 없음',
-              
             }} />
       ))}
 
@@ -1354,15 +1230,10 @@ const HomeStack = () => {
           headerBackTitle: '목록',
           headerTitleStyle: {
             fontSize: 18, // 헤더 타이틀의 폰트 사이즈를 15로 설정
+            fontFamily:'HakgyoansimBareonbatangB',
           },
-          // headerBackground: () => (
-          //   <Image
-          //     source={require('./images/coverImage.png')} // 배경이미지
-          //     style={{ width: '100%', height: '110%' }} // 이미지가 헤더 전체를 채우도록 설정
-          //   />),
         }}
       />
-      {/* ImageDetail 화면 추가 */}
       <Stack.Screen
         name="ImageDetail"
         component={ImageDetailScreen}
@@ -1370,16 +1241,10 @@ const HomeStack = () => {
           headerBackTitle: '목록',
           headerTintColor: 'white',
           headerTitleStyle: {
-            fontSize: 25,
+            fontSize: 23,
+            fontFamily:'NotoSansKR-Regular',
+
           },
-          // headerBackground: () => (
-          //   <Image
-          //     source={require('./images/coverImage.png')}
-          //     style={{ width: '100%', height: '110%' }}
-          //   />
-          // ),
-          // // route.params에서 이미지의 제목을 가져와서 헤더 타이틀로 설정
-          // title: route.params.imageName.match(/^\d+/)+'장',
         })}
       />
     </Stack.Navigator>
