@@ -29,7 +29,7 @@ export const styles = StyleSheet.create({
       position: 'absolute',
       right: 9,
       padding:20,
-      top: 54,
+      top: 59,
       right : -10,
     },
     // clearButtonText: {
@@ -74,7 +74,7 @@ export const styles = StyleSheet.create({
       alignItems: 'center',
     },
     image: {
-      marginTop:-20,
+      marginTop:-25,
       width: '110%', // 이미지를 화면에 꽉 차도록 넓이 설정
       height: windowHeight * 0.8, // 이미지가 화면의 70%를 차지하도록 설정
       resizeMode: 'contain', // 이미지가 화면에 꽉 차도록 조절
