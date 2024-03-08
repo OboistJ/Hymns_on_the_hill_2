@@ -929,6 +929,7 @@ const MyTabView = () => {
     navigation.push('ImageDetails_New', { 
       imageName: favoriteSongs[previousIndex].name, 
       favoriteSongs: favoriteSongs,
+      tabIndex: tabIndex,
       direction: 'back'
     });
   };
@@ -941,9 +942,19 @@ const MyTabView = () => {
     // 페이지 교체 로직, 예를 들어
     navigation.push('ImageDetails_New', { 
       imageName: favoriteSongs[nextIndex].name, 
-      favoriteSongs: favoriteSongs 
+      favoriteSongs: favoriteSongs ,
+      tabIndex: tabIndex ,
     });
   };
+
+  
+  
+
+  useLayoutEffect(() => {
+    if (route.params?.tabIndex !== undefined) {
+      setTabIndex(route.params.tabIndex);
+    }
+  }, [route.params?.tabIndex]);
   
 
   // 현재 이미지의 상세 정보를 보여줍니다.
